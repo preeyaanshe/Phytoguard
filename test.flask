@@ -1,0 +1,311 @@
+from flask import Flask, render_template, request, jsonify
+from tensorflow.keras.models import load_model
+from keras.preprocessing.image import ImageDataGenerator
+import numpy as np
+import tensorflow as tf
+import cv2
+import os
+
+app = Flask(__name__)
+
+# Load your trained model
+model = load_model('C:/Users/Himanshi/Desktop/MyProject_PlantDiseaseDetection/trained_model.h5')
+class_name = ['Apple___Apple_scab', 'Apple___Black_rot', 'Apple___Cedar_apple_rust', 'Apple___healthy', 'Blueberry___healthy', 'Cherry_(including_sour)___Powdery_mildew', 'Cherry_(including_sour)___healthy', 'Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot', 'Corn_(maize)___Common_rust_', 'Corn_(maize)___Northern_Leaf_Blight', 'Corn_(maize)___healthy', 'Grape___Black_rot', 'Grape___Esca_(Black_Measles)', 'Grape___Leaf_blight_(Isariopsis_Leaf_Spot)', 'Grape___healthy', 'Orange___Haunglongbing_(Citrus_greening)', 'Peach___Bacterial_spot', 'Peach___healthy', 'Pepper,_bell___Bacterial_spot', 'Pepper,_bell___healthy', 'Potato___Early_blight', 'Potato___Late_blight', 'Potato___healthy', 'Raspberry___healthy', 'Soybean___healthy', 'Squash___Powdery_mildew', 'Strawberry___Leaf_scorch', 'Strawberry___healthy', 'Tomato___Bacterial_spot', 'Tomato___Early_blight', 'Tomato___Late_blight', 'Tomato___Leaf_Mold', 'Tomato___Septoria_leaf_spot', 'Tomato___Spider_mites Two-spotted_spider_mite', 'Tomato___Target_Spot', 'Tomato___Tomato_Yellow_Leaf_Curl_Virus', 'Tomato___Tomato_mosaic_virus', 'Tomato___healthy']
+# Define a function to preprocess the image
+def preprocess_image(image_path):
+    image = tf.keras.preprocessing.image.load_img(image_path, target_size = (128, 128))
+    input_arr = tf.keras.preprocessing.image.img_to_array(image)
+    input_arr = np.array([input_arr])
+    return input_arr
+
+# Define a route to render the HTML form
+@app.route('/')
+def index():
+   
+    return """
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhytoGuard</title>
+
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #90EE90;
+        }
+        header {
+            background-image: url('he1.jpg');
+            background-size: cover;
+            color: "dark green" ;
+            padding: 20px 0;
+            text-align: center;
+        }
+        nav {
+            background-color: #444;
+            padding: 10px 0;
+            text-align: center;
+        }
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        section {
+            padding: 20px;
+            margin: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+        }
+        section h2 {
+            color: #333;
+            cursor: pointer;
+        }
+        .details {
+            display: none;
+        }
+        footer {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .card {
+            width: 300px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: scale(1.05);
+        }
+        .card img {
+            width: 100%;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+        }
+        .card-content {
+            padding: 20px;
+        }
+    </style>
+   
+
+<script>
+            function predictImage() {
+                var formData = new FormData();
+                var fileInput = document.getElementById('fileInput');
+                formData.append('file', fileInput.files[0]);
+
+                fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    var predictionResult = document.getElementById('predictionResult');
+                    predictionResult.value = 'Prediction: ' + data.prediction[0] + data.prediction[1] + data.prediction[2] + data.prediction[3];
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            }
+        </script>
+</head>
+<body>
+    <header>
+
+        <h1>PHYTOGUARD</h1>
+        <p>Rooting out plant diseases before they take root: Your green guardian against crop calamities!</p>
+    </header>
+    <nav>  
+
+        <a href="#home">Home</a>
+        <a href="#about">About Us</a>
+        <a href="#services">Services</a>
+        <a href="#contact">Contact</a>
+        <a href="#owner">Owner</a>
+
+    </nav>
+    <section id="home">
+
+        <h2>Home</h2>
+        <p>Welcome to PhytoGuard
+
+At PhytoGuard, we are dedicated to revolutionizing agriculture through cutting-edge technology. Our advanced plant disease detection system leverages the power of artificial intelligence and machine learning to safeguard your crops and ensure maximum yield.</p>
+<p> Some of our Key Features are dispalyed as follows: </p>
+
+        <div class="container">
+
+            <div class="card">  
+                <img src="static/pg1.png" alt="Service 1">
+                <div class="card-content" onclick="toggleDetails('details1')">
+                    <h3>Rapid and accurate disease detection</h3>
+                   
+                </div>
+                <div class="details" id="details1">
+                    <p>Additional details about Service 1.</p>
+                </div>
+            </div>
+            <div class="card">
+                <img src="static/pg2.png" alt="Service 2">
+                <div class="card-content" onclick="toggleDetails('details2')">
+                    <h3>Compatible with various crop types</h3>
+                   
+                </div>
+                <div class="details" id="details2">
+                    <p>Additional details about Service 2.</p>
+                </div>
+            </div>
+            <div class="card">
+                <img src="static/pg3.png" alt="Service 3">
+                <div class="card-content" onclick="toggleDetails('details3')">
+                    <h3>User-friendly interface for seamless navigation</h3>
+                   
+                </div>
+                <div class="details" id="details3">
+                    <p>Additional details about Service 3.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section id="about">
+        <h2>About Us</h2>
+        <p><h2>How it works</h2>
+
+<p>
+Our system utilizes state-of-the-art image recognition algorithms to accurately identify and diagnose plant diseases. Simply upload images of your crops, and within seconds, receive detailed reports highlighting any signs of disease or distress.</p>
+
+<p>With years of expertise in both agriculture and technology, our team is committed to empowering farmers and growers with the tools they need to protect their livelihoods and contribute to global food security.</p>
+
+<p>Our mission is simple: to provide high-quality services that amplify the joys of Farming. </p>
+
+
+        <p></p>
+        <p></p>
+    </section>
+    <section id="services">
+        <h2>Services</h2>
+        <div class="container">
+            <div class="card">
+                <img src="static/pg4.png" alt="Service 1">
+                <div class="card-content" onclick="toggleDetails('details1')">
+                    <h3>Upload Image</h3>
+                    <p>Upload the leaf Image which you think may have some disease</p>
+                </div>
+                <div class="details" id="details1">
+                    <p></p>
+                </div>
+            </div>
+            <div class="card">
+                <img src="static/pg5.jpg" alt="Service 2">
+                <div class="card-content" onclick="toggleDetails('details2')">
+                    <h3>See Results</h3>
+                    <p>See the results after the image gets scanned for any disese from our varied dataset</p>
+                </div>
+                <div class="details" id="details2">
+                    <p>Additional details about Service 2.</p>
+                </div>
+            </div>
+            <div class="card">
+                <img src="static/pg6.jpg" alt="Service 3">
+                <div class="card-content" onclick="toggleDetails('details3')">
+                    <h3>FAQs</h3>
+                    <p>Have access to FAQs section to get your issues resolved</p>
+                </div>
+                <div class="details" id="details3">
+                    <p></p>
+                </div>
+            </div>
+        </div>
+</section>
+    <section id ="owner">
+        <h2>About the Owner</h2>
+<img src="static/pg7.jpg" alt="Owner" width = "1410">
+        <p>Discover the driving force behind PhytoGuard – our visionary founding team of- Anushree, Himanshi, Jahnvi and Priyanshi. With a deep-rooted passion for AI&ML, adventure, and all things green, the owners embarked on a mission to revolutionize agriculture through cutting-edge technology</p>
+        <!-- Include description, images, franchises, etc. -->
+    </section>
+    <section id ="owner">
+        <h2>Upload image here</h2>
+
+         <form action="/predict" method="pos
+         t" enctype="multipart/form-data">
+      <input type="file" id="fileInput" name="file">
+                <input type="button" value="Predict" onclick="predictImage()">
+    </form>
+    <textarea id="predictionResult" rows="4" cols="50"></textarea>  
+       
+    </section>
+
+   
+   
+   
+    <section id="contact">
+        <h2>Contact Us</h2>
+        <p>Feel free to reach out to us for any inquiries or feedback.</p>
+           
+           
+        <form action="#" method="post">
+
+            <label for="name">Name:</label><br>
+            <input type="text" id="name" name="name" required><br>
+            <label for="email">Email:</label><br>
+            <input type="email" id="email" name="email" required><br>
+            <label for="message">Message:</label><br>
+            <textarea id="message" name="message" rows="4" required></textarea><br>
+            <input type="submit" value="Submit">
+        </form>
+        <p>Email: <a href="backupanushree22@gmail.com">backupanushree22@gmail.com</a></p>
+        <p>Phone: +91 22334455</p>
+        <p>Address: Banasthali Vidyapeeth, Rajasthan, India</p>
+    </section>
+ <section id="end">
+        <img src="F" width ="1450">
+    </section>
+   
+
+    <footer>
+        <p>&copy; 2024 PhytoGuard's Website. All rights reserved.</p>
+    </footer>
+   
+</body>
+</html>
+
+    """
+   
+
+# Define a route to handle image uploads and predictions
+@app.route('/predict', methods=['POST'])
+def predict():
+    file = request.files['file']
+    if not file:
+        return jsonify({'error': 'No file uploaded'})
+   
+    file_path = 'uploads/' + file.filename
+    file.save(file_path)
+    processed_image = preprocess_image(file_path)
+    prediction = model.predict(processed_image)
+    result_index = np.argmax(prediction)
+    model_prediction = class_name[result_index]
+   
+    plant, disease = model_prediction.split("___")
+   
+    return jsonify({'prediction': ["\nPlant detected: ", plant, "\nResult: ", disease]})
+
+if __name__ == '__main__':
+    app.run()
+
